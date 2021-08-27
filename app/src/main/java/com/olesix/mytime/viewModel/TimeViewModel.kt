@@ -1,5 +1,6 @@
 package com.olesix.mytime.viewModel
 
+import android.os.SystemClock
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import com.olesix.mytime.model.TimeStateModel
@@ -19,18 +20,36 @@ class TimeViewModel: ViewModel() {
     /**
      * Get the updated states from our model and post the values to TimeFragment
      */
-    fun start() {
-        val updatedState = TimeStateModel.START
-        uiTimeLiveData.postValue(updatedState)
+
+    private var difference: Long = 0
+    private var time: Long = 0
+    private var isRunning: Boolean = false
+
+    fun start() : Boolean {
+        return if (!isRunning) {
+            time = difference + SystemClock.elapsedRealtime()
+            val updatedState = TimeStateModel.Start(time)
+            uiTimeLiveData.postValue(updatedState)
+            difference = 0
+            isRunning = true
+            false
+        } else true
+
     }
 
     fun stop() {
-        val updatedState = TimeStateModel.STOP
+        if (difference == 0L && time != 0L) {
+            difference = time - SystemClock.elapsedRealtime()
+        }
+        val updatedState = TimeStateModel.Stop(difference)
         uiTimeLiveData.postValue(updatedState)
+        isRunning = false
     }
 
     fun reset() {
-        val updatedState = TimeStateModel.RESET
+        difference = 0
+        isRunning = false
+        val updatedState = TimeStateModel.Reset(SystemClock.elapsedRealtime())
         uiTimeLiveData.postValue(updatedState)
     }
 }

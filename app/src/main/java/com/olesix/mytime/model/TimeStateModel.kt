@@ -3,17 +3,19 @@ package com.olesix.mytime.model
 /**
  * TimeStateModel contains the states of UI (in TimeFragment)
  */
-enum class TimeStateModel {
-    /**
-     * START is starts the Chronometer
-     */
-    START,
-    /**
-     * STOP is stops the Chronometer
-     */
-    STOP,
-    /**
-     * RESET is resets the Chronometer
-     */
-    RESET
+sealed class TimeStateModel {
+/**
+* START is starts the Chronometer
+*/
+data class Start(val time: Long) : TimeStateModel()
+/**
+* STOP is stops the Chronometer
+*/
+data class Stop(val time: Long) : TimeStateModel()
+
+/**
+* RESET is resets the Chronometer
+*/
+data class Reset(val time: Long) : TimeStateModel()
+
 }

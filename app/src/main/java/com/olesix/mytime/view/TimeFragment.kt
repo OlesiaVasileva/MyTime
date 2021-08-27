@@ -1,16 +1,21 @@
 package com.olesix.mytime.view
 
+import android.animation.ArgbEvaluator
+import android.animation.ObjectAnimator
+import android.graphics.Color
 import android.os.Bundle
-import android.os.SystemClock
-import android.view.LayoutInflater
-import android.view.View
-import android.view.ViewGroup
+import android.util.Log
+import android.view.*
+import android.view.GestureDetector.SimpleOnGestureListener
+import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.Observer
+import com.olesix.mytime.R
 import com.olesix.mytime.databinding.FragmentTimeBinding
 import com.olesix.mytime.model.TimeStateModel
 import com.olesix.mytime.viewModel.TimeViewModel
+
 
 /**
  * TimeFragment: - shows the UI, - listens to TimeViewModel for updates on UI
@@ -22,6 +27,8 @@ class TimeFragment: Fragment() {
     private var _binding: FragmentTimeBinding? = null
     private val binding get() = _binding!!
     private val viewModel: TimeViewModel by activityViewModels()
+    private val LOG_TAG: String = "myApp"
+
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -45,62 +52,73 @@ class TimeFragment: Fragment() {
     }
 
     private fun setupClickListeners() {
-        binding.fragmentChronometer.setOnClickListener {
-            viewModel.start()
-        }
+        val gestureDetector = GestureDetector(context, GestureListener())
+        binding.fragmentLayout.setOnTouchListener {_, event -> gestureDetector.onTouchEvent(event) }
+    }
 
-        binding.fragmentChronometer.setOnLongClickListener {
-            viewModel.reset()
-            true
-        }
-
-        binding.fragmentLayout.setOnClickListener(object : DoubleClickListener() {
-            override fun onDoubleClick(v: View?) {
-                viewModel.stop()
-            }
-        })
+    private fun startAnimation(it: View?, colorFrom: Int, colorTo: Int) {
+        val duration = 500L
+        ObjectAnimator.ofObject(
+            it,
+            "backgroundColor",
+            ArgbEvaluator(),
+            colorFrom,
+            colorTo
+        )
+            .setDuration(duration)
+            .start()
     }
 
     // Observer is waiting for viewModel to update our UI
     private fun fragmentChronometerStatesUpdateObserver() {
-        var difference: Long = 0
-        var time: Long
 
         viewModel.uiTimeLiveData.observe(viewLifecycleOwner, Observer { updatedState ->
             when (updatedState) {
-                TimeStateModel.START -> {
-                    time = difference + SystemClock.elapsedRealtime()
-                    binding.fragmentChronometer.base = time
+                is TimeStateModel.Start -> {
+                    binding.fragmentChronometer.base = updatedState.time
                     binding.fragmentChronometer.start();
-                    difference = 0
                 }
-                TimeStateModel.STOP -> {
+                is TimeStateModel.Stop -> {
                     binding.fragmentChronometer.stop()
-                    difference = binding.fragmentChronometer.base - SystemClock.elapsedRealtime()
                 }
-                TimeStateModel.RESET -> {
+                is TimeStateModel.Reset -> {
                     binding.fragmentChronometer.stop()
-                    binding.fragmentChronometer.base = SystemClock.elapsedRealtime();
-                    difference = 0
+                    binding.fragmentChronometer.base = updatedState.time;
                 }
             }
         })
     }
-}
 
-abstract class DoubleClickListener : View.OnClickListener {
-    var lastClickTime: Long = 0
-    override fun onClick(v: View?) {
-        val clickTime = System.currentTimeMillis()
-        if (clickTime - lastClickTime < DOUBLE_CLICK_TIME_DELTA) {
-            onDoubleClick(v)
+    private inner class GestureListener : SimpleOnGestureListener() {
+        override fun onDoubleTap(e: MotionEvent?): Boolean {
+            Log.d(LOG_TAG, "onDoubleTap")
+            viewModel.stop()
+            binding.fragmentLayout.animate().apply {
+                context?.let { ContextCompat.getColor(it, R.color.colorAnimation) }?.let {
+                    startAnimation(binding.fragmentLayout,
+                        it, Color.BLACK)
+                }
+            }
+            return true
         }
-        lastClickTime = clickTime
-    }
-
-    abstract fun onDoubleClick(v: View?)
-
-    companion object {
-        private const val DOUBLE_CLICK_TIME_DELTA: Long = 300
+        override fun onDown(e: MotionEvent): Boolean {
+            return true
+        }
+        override fun onLongPress(event: MotionEvent) {
+            Log.d(LOG_TAG, "onLongPress")
+            viewModel.reset()
+        }
+        override fun onSingleTapConfirmed(e: MotionEvent?): Boolean {
+            Log.d(LOG_TAG, "onSingleTapConfirmed")
+            val isRunning = viewModel.start()
+            if (!isRunning) {
+                binding.fragmentLayout.animate().apply {
+                    startAnimation(binding.fragmentLayout, Color.WHITE, Color.BLACK)
+                }
+            }
+            return super.onSingleTapConfirmed(e)
+        }
     }
 }
+
+
