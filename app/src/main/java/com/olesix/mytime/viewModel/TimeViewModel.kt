@@ -48,6 +48,7 @@ class TimeViewModel: ViewModel() {
 
     fun reset() {
         difference = 0
+        time = 0
         isRunning = false
         val updatedState = TimeStateModel.Reset(SystemClock.elapsedRealtime())
         uiTimeLiveData.postValue(updatedState)

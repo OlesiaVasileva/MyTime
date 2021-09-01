@@ -9,25 +9,28 @@ import android.view.*
 import android.view.GestureDetector.SimpleOnGestureListener
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
-import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.Observer
 import com.olesix.mytime.R
 import com.olesix.mytime.databinding.FragmentTimeBinding
 import com.olesix.mytime.model.TimeStateModel
 import com.olesix.mytime.viewModel.TimeViewModel
+import org.koin.core.component.KoinApiExtension
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
 
+private const val LOG_TAG: String = "myApp"
 
 /**
  * TimeFragment: - shows the UI, - listens to TimeViewModel for updates on UI
  * One click on the Chronometer - starts work, long click on the Chronometer
  * resets the time, double click on the area around the Chronometer - pauses.
  */
-class TimeFragment: Fragment() {
+@KoinApiExtension
+class TimeFragment: Fragment(), KoinComponent {
 
     private var _binding: FragmentTimeBinding? = null
     private val binding get() = _binding!!
-    private val viewModel: TimeViewModel by activityViewModels()
-    private val LOG_TAG: String = "myApp"
+    private val viewModel: TimeViewModel by inject()
 
 
     override fun onCreateView(
@@ -76,14 +79,14 @@ class TimeFragment: Fragment() {
             when (updatedState) {
                 is TimeStateModel.Start -> {
                     binding.fragmentChronometer.base = updatedState.time
-                    binding.fragmentChronometer.start();
+                    binding.fragmentChronometer.start()
                 }
                 is TimeStateModel.Stop -> {
                     binding.fragmentChronometer.stop()
                 }
                 is TimeStateModel.Reset -> {
                     binding.fragmentChronometer.stop()
-                    binding.fragmentChronometer.base = updatedState.time;
+                    binding.fragmentChronometer.base = updatedState.time
                 }
             }
         })
